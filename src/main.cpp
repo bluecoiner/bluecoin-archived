@@ -2736,6 +2736,8 @@ bool LoadBlockIndex(bool fAllowNew)
         txdb.Close();
     }
 
+	Checkpoints::ResetSyncCheckpoint();
+	
     return true;
 }
 

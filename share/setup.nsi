@@ -5,7 +5,7 @@ SetCompressor /SOLID lzma
 
 # General Symbol Definitions
 !define REGKEY "SOFTWARE\$(^Name)"
-!define VERSION 1.2.1
+!define VERSION 1.3.0
 !define COMPANY "BlueCoin project"
 !define URL http://
 
@@ -45,13 +45,13 @@ Var StartMenuGroup
 !insertmacro MUI_LANGUAGE English
 
 # Installer attributes
-OutFile bluecoin-1.2.1-win32-setup.exe
+OutFile bluecoin-1.3.0-win32-setup.exe
 InstallDir $PROGRAMFILES\BlueCoin
 CRCCheck on
 XPStyle on
 BrandingText " "
 ShowInstDetails show
-VIProductVersion 1.2.1.0
+VIProductVersion 1.3.0.0
 VIAddVersionKey ProductName BlueCoin
 VIAddVersionKey ProductVersion "${VERSION}"
 VIAddVersionKey CompanyName "${COMPANY}"

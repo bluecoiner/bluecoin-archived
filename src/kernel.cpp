@@ -12,6 +12,7 @@ using namespace std;
 extern int nStakeMaxAge;
 extern int nStakeTargetSpacing;
 extern int nStakeTargetSpacing2;
+extern int nStakeTargetSpacing3;
 
 // Modifier interval: time to elapse before new modifier is computed
 // Set to 3-hour for production network and 20-minute for test network
@@ -28,6 +29,35 @@ static std::map<int, unsigned int> mapStakeModifierCheckpoints =
 	(   34600, 0x5c56b611u )
 	;
 
+int64 GetCoinAgeWeight(int64 nIntervalBeginning, int64 nIntervalEnd)
+{
+    if (nIntervalBeginning <= 0)
+    {
+        printf("WARNING *** GetCoinAgeWeight: nIntervalBeginning is <= 0\n");
+        return 0;
+    }
+
+    int64 nSeconds = max((int64)0, nIntervalEnd - nIntervalBeginning - nStakeMinAge);
+    double days = double(nSeconds) / (24 * 60 * 60);
+    double weight = 0;
+
+    if (days <= 7)
+    {
+        weight = -0.00408163 * pow(days, 3) + 0.05714286 * pow(days, 2) + days;
+    }
+    else
+    {
+        weight = 8.4 * log(days) - 7.94564525;
+    }
+	
+	weight *= 24 * 60 * 60;
+	
+	if (fDebug && GetBoolArg("-printcoinage"))
+		printf("GetCoinAgeWeight: nSeconds=%"PRId64" days=%f weight=%f\n",nSeconds,days,weight);
+	
+    return min(int64(weight), (int64)nStakeMaxAge);
+}
+
 // Get time weight
 int64 GetWeight(int64 nIntervalBeginning, int64 nIntervalEnd)
 {
@@ -35,6 +65,10 @@ int64 GetWeight(int64 nIntervalBeginning, int64 nIntervalEnd)
     // this change increases active coins participating the hash and helps
     // to secure the network when proof-of-stake difficulty is low
 
+	const CBlockIndex* pIndex0 = GetLastBlockIndex(pindexBest, false);
+	if(pIndex0->pprev && pIndex0->nHeight > POSV_CUTOFF)
+        return GetCoinAgeWeight((int64)nIntervalBeginning, (int64)nIntervalEnd);
+	
     return min(nIntervalEnd - nIntervalBeginning - nStakeMinAge, (int64)nStakeMaxAge);
 }
  
@@ -155,11 +189,16 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexPrev, uint64& nStakeModif
         return true;
 
     // Sort candidate blocks by timestamp
+	const CBlockIndex* pindex = pindexPrev;
     vector<pair<int64, uint256> > vSortedByTimestamp;
-    vSortedByTimestamp.reserve(64 * nModifierInterval / nStakeTargetSpacing2);
+    
+	if (pindex->nHeight > POSV_CUTOFF)
+		vSortedByTimestamp.reserve(64 * nModifierInterval / nStakeTargetSpacing3);
+	else vSortedByTimestamp.reserve(64 * nModifierInterval / nStakeTargetSpacing2);
+	
     int64 nSelectionInterval = GetStakeModifierSelectionInterval();
     int64 nSelectionIntervalStart = (pindexPrev->GetBlockTime() / nModifierInterval) * nModifierInterval - nSelectionInterval;
-    const CBlockIndex* pindex = pindexPrev;
+    
     while (pindex && pindex->GetBlockTime() >= nSelectionIntervalStart)
     {
         vSortedByTimestamp.push_back(make_pair(pindex->GetBlockTime(), pindex->GetBlockHash()));
@@ -299,9 +338,13 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock& blockFrom, unsigned 
     // this change increases active coins participating the hash and helps
     // to secure the network when proof-of-stake difficulty is low
     int64 nTimeWeight = min((int64)nTimeTx - txPrev.nTime, (int64)nStakeMaxAge) - nStakeMinAge;
+	
+	if (mapBlockIndex[blockFrom.GetHash()]->nHeight > POSV_CUTOFF)
+		nTimeWeight = GetCoinAgeWeight((int64)txPrev.nTime, (int64)nTimeTx);
+	
     CBigNum bnCoinDayWeight = CBigNum(nValueIn) * nTimeWeight / COIN / (24 * 60 * 60);
 
-	// printf(">>> CheckStakeKernelHash: nTimeWeight = %"PRI64d"\n", nTimeWeight);
+	// printf(">>> CheckStakeKernelHash: nTimeWeight = %"PRId64"\n", nTimeWeight);
     // Calculate hash
     CDataStream ss(SER_GETHASH, 0);
     uint64 nStakeModifier = 0;

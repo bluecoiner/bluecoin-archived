@@ -5,8 +5,8 @@
 #define BITCOIN_VERSION_H
 
 #define DISPLAY_VERSION_MAJOR       1
-#define DISPLAY_VERSION_MINOR       2
-#define DISPLAY_VERSION_REVISION    1
+#define DISPLAY_VERSION_MINOR       3
+#define DISPLAY_VERSION_REVISION    0
 #define DISPLAY_VERSION_BUILD       0
 
 #include "clientversion.h"

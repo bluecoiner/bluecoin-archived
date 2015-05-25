@@ -41,10 +41,11 @@ static CBigNum bnProofOfStakeLimit(~uint256(0) >> 20);
 static CBigNum bnProofOfWorkLimitTestNet(~uint256(0) >> 20);
 static CBigNum bnProofOfStakeLimitTestNet(~uint256(0) >> 20);
 
-unsigned int nStakeMinAge = 60 * 60 * 24 * 2;	// minimum age for coin age: 2d
+unsigned int nStakeMinAge = 60 * 60 * 1;		// minimum age for coin age: 1 hour
 unsigned int nStakeMaxAge = 60 * 60 * 24 * 100;	// stake age of full weight: -1
-unsigned int nStakeTargetSpacing = 90;			// 60 sec block spacing
-unsigned int nStakeTargetSpacing2 = 60;			// 90 sec block spacing
+unsigned int nStakeTargetSpacing = 90;			// 90 sec block spacing
+unsigned int nStakeTargetSpacing2 = 60;			// 60 sec block spacing
+unsigned int nStakeTargetSpacing3 = 30;			// 30 sec block spacing
 
 int64 nChainStartTime = 1398199027;
 int nCoinbaseMaturity = 350;
@@ -969,6 +970,8 @@ int64 GetProofOfWorkReward(int nHeight, int64 nFees, uint256 prevHash)
 	{
 		return nMinSubsidy + nFees;
 	}
+	else if (nHeight > POSV_CUTOFF)
+		return 0;
 
     return nSubsidy + nFees;
 }
@@ -976,7 +979,7 @@ int64 GetProofOfWorkReward(int nHeight, int64 nFees, uint256 prevHash)
 // miner's coin stake reward based on nBits and coin age spent (coin-days)
 // simple algorithm, not depend on the diff
 const int YEARLY_BLOCKCOUNT = 525600;	// 365 * 1440
-int64 GetProofOfStakeReward(int64 nCoinAge, unsigned int nBits, unsigned int nTime, int nHeight)
+int64 GetProofOfStakeReward(int64 nCoinAge, int nHeight)
 {
     int64 nRewardCoinYear;
 
@@ -986,19 +989,22 @@ int64 GetProofOfStakeReward(int64 nCoinAge, unsigned int nBits, unsigned int nTi
 		nRewardCoinYear = 5 * MIN_MINT_PROOF_OF_STAKE;
 	else if(nHeight < (2 * YEARLY_BLOCKCOUNT))
 		nRewardCoinYear = 3 * MIN_MINT_PROOF_OF_STAKE;
-	//else if(nHeight < (3 * YEARLY_BLOCKCOUNT))
-	//	nRewardCoinYear = 2 * MIN_MINT_PROOF_OF_STAKE;
+	
+	// set return to 10% after PoSV starts
+	if (nHeight > POSV_CUTOFF)
+		nRewardCoinYear = 10 * MIN_MINT_PROOF_OF_STAKE;
 
     int64 nSubsidy = nCoinAge * nRewardCoinYear / 365;
 
 	if (fDebug && GetBoolArg("-printcreation"))
-        printf("GetProofOfStakeReward(): create=%s nCoinAge=%"PRI64d" nBits=%d\n", FormatMoney(nSubsidy).c_str(), nCoinAge, nBits);
+        printf("GetProofOfStakeReward(): create=%s nCoinAge=%"PRI64d"\n", FormatMoney(nSubsidy).c_str(), nCoinAge);
     return nSubsidy;
 }
 
 static const int64 nTargetTimespan = 30 * 30;  
 static const int64 nTargetSpacingWorkMax = 3 * nStakeTargetSpacing; 
 static const int64 nTargetSpacingWorkMax2 = 3 * nStakeTargetSpacing2; 
+static const int64 nTargetSpacingWorkMax3 = 3 * nStakeTargetSpacing3; 
 
 //
 // maximum nBits value could possible be required nTime after
@@ -1101,7 +1107,8 @@ unsigned int static DarkGravityWave4(const CBlockIndex* pindexLast, bool fProofO
     CBigNum bnNew(PastDifficultyAverage);
 		
     int64 nTargetTimespan = CountBlocks*nStakeTargetSpacing2;
-
+	if (BlockLastSolved->nHeight > POSV_CUTOFF)
+		nTargetTimespan = CountBlocks*nStakeTargetSpacing3;
     if (nActualTimespan < nTargetTimespan/3)
         nActualTimespan = nTargetTimespan/3;
     if (nActualTimespan > nTargetTimespan*3)
@@ -1171,6 +1178,8 @@ unsigned int GetNextTargetRequired(const CBlockIndex* pindexLast, bool fProofOfS
 		int64 nTargetSpacing;
 		if (pindexPrev->nHeight < 50000)
 			nTargetSpacing = fProofOfStake? nStakeTargetSpacing : min(nTargetSpacingWorkMax, (int64) nStakeTargetSpacing * (1 + pindexLast->nHeight - pindexPrev->nHeight));
+		else if (pindexPrev->nHeight > POSV_CUTOFF)
+			nTargetSpacing = fProofOfStake? nStakeTargetSpacing3 : min(nTargetSpacingWorkMax3, (int64) nStakeTargetSpacing3 * (1 + pindexLast->nHeight - pindexPrev->nHeight));
 		else nTargetSpacing = fProofOfStake? nStakeTargetSpacing2 : min(nTargetSpacingWorkMax2, (int64) nStakeTargetSpacing2 * (1 + pindexLast->nHeight - pindexPrev->nHeight));
 		
 		int64 nInterval = nTargetTimespan / nTargetSpacing;
@@ -1497,7 +1506,7 @@ bool CTransaction::ConnectInputs(CTxDB& txdb, MapPrevTx inputs,
             if (!GetCoinAge(txdb, nCoinAge))
                 return error("ConnectInputs() : %s unable to get coin age for coinstake", GetHash().ToString().substr(0,10).c_str());
             int64 nStakeReward = GetValueOut() - nValueIn;
-            if (nStakeReward > GetProofOfStakeReward(nCoinAge, pindexBlock->nBits, nTime, pindexBlock->nHeight) - GetMinFee() + MIN_TX_FEE)
+            if (nStakeReward > GetProofOfStakeReward(nCoinAge,pindexBlock->nHeight) - GetMinFee() + MIN_TX_FEE)
                 return DoS(100, error("ConnectInputs() : %s stake reward exceeded", GetHash().ToString().substr(0,10).c_str()));
         }
         else
@@ -2003,7 +2012,10 @@ bool CTransaction::GetCoinAge(CTxDB& txdb, uint64& nCoinAge) const
             continue; // only count coins meeting min age requirement
 
         int64 nValueIn = txPrev.vout[txin.prevout.n].nValue;
-        bnCentSecond += CBigNum(nValueIn) * (nTime-txPrev.nTime) / CENT;
+		int64 nTimeWeight = (nTime-txPrev.nTime);
+		if (mapBlockIndex[block.GetHash()]->nHeight > POSV_CUTOFF)
+			nTimeWeight = GetCoinAgeWeight(txPrev.nTime,nTime);
+        bnCentSecond += CBigNum(nValueIn) * nTimeWeight / CENT;
 
         if (fDebug && GetBoolArg("-printcoinage"))
             printf("coin age nValueIn=%"PRI64d" nTimeDiff=%d bnCentSecond=%s\n", nValueIn, nTime - txPrev.nTime, bnCentSecond.ToString().c_str());
@@ -2211,8 +2223,8 @@ bool CBlock::AcceptBlock()
         return DoS(10, error("AcceptBlock() : prev block not found"));
     CBlockIndex* pindexPrev = (*mi).second;
     int nHeight = pindexPrev->nHeight+1;
-	//if (IsProofOfWork() && nHeight > CUTOFF_POW_BLOCK)
-    //    return DoS(100, error("AcceptBlock() : No proof-of-work allowed anymore (height = %d)", nHeight));
+	if (IsProofOfWork() && nHeight > POSV_CUTOFF)
+        return DoS(10, error("AcceptBlock() : No proof-of-work allowed anymore (height = %d)", nHeight));
     if (IsProofOfStake() && nHeight < CUTOFF_POS_BLOCK)
         return DoS(100, error("AcceptBlock() : No proof-of-stake allowed yet (height = %d)", nHeight));
     // Check proof-of-work or proof-of-stake
@@ -2598,7 +2610,7 @@ static unsigned int nCurrentBlockFile = 1;
 FILE* AppendBlockFile(unsigned int& nFileRet)
 {
     nFileRet = 0;
-    loop
+    while (true)
     {
         FILE* file = OpenBlockFile(nCurrentBlockFile, 0, "ab");
         if (!file)
@@ -3645,7 +3657,7 @@ bool ProcessMessages(CNode* pfrom)
     //  (x) data
     //
 
-    loop
+    while (true)
     {
         // Don't bother if send buffer is too full to respond anyway
         if (pfrom->vSend.size() >= SendBufferSize())
@@ -4481,7 +4493,7 @@ void BitcoinMiner(CWallet *pwallet, bool fProofOfStake)
         block_header res_header;
         uint256 result;
 
-        loop
+        while (true)
         {
             unsigned int nHashesDone = 0;
             unsigned int nNonceFound;

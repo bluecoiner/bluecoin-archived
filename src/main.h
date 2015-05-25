@@ -11,6 +11,8 @@
 #include "script.h"
 #include "scrypt_mine.h"
 #include "hashblock.h"
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 
 #include <list>
 
@@ -42,6 +44,7 @@ static const int64 MIN_TXOUT_AMOUNT = MIN_TX_FEE;
 static const int CUTOFF_POW_BLOCK = 50000;
 static const int CUTOFF_POS_BLOCK = 50000;
 static const int X11_CUTOFF_TIME = 1403395200;
+static const int POSV_CUTOFF = 835000;
 inline bool MoneyRange(int64 nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
 // Threshold for nLockTime: below this value it is interpreted as block number, otherwise as UNIX timestamp.
 static const unsigned int LOCKTIME_THRESHOLD = 500000000; // Tue Nov  5 00:53:20 1985 UTC
@@ -116,7 +119,7 @@ void FormatHashBuffers(CBlock* pblock, char* pmidstate, char* pdata, char* phash
 bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey);
 bool CheckProofOfWork(uint256 hash, unsigned int nBits);
 int64 GetProofOfWorkReward(int nHeight, int64 nFees, uint256 prevHash);
-int64 GetProofOfStakeReward(int64 nCoinAge, unsigned int nBits, unsigned int nTime, int nHeight);
+int64 GetProofOfStakeReward(int64 nCoinAge, int nHeight);
 unsigned int ComputeMinWork(unsigned int nBase, int64 nTime);
 unsigned int ComputeMinStake(unsigned int nBase, int64 nTime, unsigned int nBlockTime);
 int GetNumBlocksOfPeers();

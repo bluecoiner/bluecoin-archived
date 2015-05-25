@@ -1,9 +1,10 @@
 TEMPLATE = app
 TARGET = bluecoin-qt
-VERSION = 1.2.1
+VERSION = 1.3.0
 INCLUDEPATH += src src/json src/qt
 DEFINES += QT_GUI BOOST_THREAD_USE_LIB BOOST_SPIRIT_THREADSAFE BOOST_THREAD_PROVIDES_GENERIC_SHARED_MUTEX_ON_WIN __NO_SYSTEM_INCLUDES
-CONFIG += no_include_pwd
+CONFIG += no_include_pwd thread
+QT += widgets
 
 # UNCOMMENT THIS SECTION TO BUILD ON WINDOWS
 # Change paths if needed, these use the foocoin/deps.git repository locations
@@ -11,6 +12,10 @@ CONFIG += no_include_pwd
 OBJECTS_DIR = build
 MOC_DIR = build
 UI_DIR = build
+
+greaterThan(QT_MAJOR_VERSION, 4) {
+    DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0
+}
 
 # use: qmake "RELEASE=1"
 contains(RELEASE, 1) {
@@ -21,6 +26,27 @@ contains(RELEASE, 1) {
         # Linux: static link
         LIBS += -Wl,-Bstatic
     }
+}
+
+win32 {
+    BOOST_LIB_SUFFIX=-mgw48-mt-s-1_58
+    BOOST_INCLUDE_PATH=d:/deps
+    BOOST_LIB_PATH=d:/deps/boost/lib
+
+    BDB_INCLUDE_PATH=d:/deps/db-4.8.30.NC/build_unix
+    BDB_LIB_PATH=d:/deps/db-4.8.30.NC/build_unix
+    OPENSSL_INCLUDE_PATH=d:/deps/openssl-1.0.2a/include
+    OPENSSL_LIB_PATH=d:/deps/openssl-1.0.2a
+
+    MINIUPNPC_INCLUDE_PATH=d:/deps/miniupnpc
+    MINIUPNPC_LIB_PATH=d:/deps/miniupnpc
+
+        #USE_BUILD_INFO = 1
+        #DEFINES += HAVE_BUILD_INFO
+
+    #USE_UPNP=-
+
+   # win32:QMAKE_LFLAGS *= -Wl,--large-address-aware -static
 }
 
 !win32 {

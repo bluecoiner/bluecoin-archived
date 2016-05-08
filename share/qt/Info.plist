@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">
+<plist version="0.9">
+<dict>
+        <key>NSPrincipalClass</key>
+        <string>NSApplication</string>
+        <key>NSHighResolutionCapable</key>
+        <true/>
+	<key>CFBundleIconFile</key>
+	<string>bluecoin.icns</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleGetInfoString</key>
+	<string>BlueCoin-Qt</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleExecutable</key>
+	<string>BlueCoin-Qt</string>
+	<key>CFBundleIdentifier</key>
+	<string>co.bluecoin.BlueCoin-Qt</string>
+        <key>CFBundleURLTypes</key>
+        <array>
+          <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>co.bluecoin.BlueCoinPayment</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+              <string>bluecoin</string>
+            </array>
+          </dict>
+        </array>
+</dict>
+</plist>
+

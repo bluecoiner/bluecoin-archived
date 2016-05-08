@@ -14,8 +14,8 @@ MOC_DIR = build
 UI_DIR = build
 
     BOOST_LIB_SUFFIX=-mt
-    BOOST_INCLUDE_PATH=/usr/local/Cellar/boost/1.57.0/include
-    BOOST_LIB_PATH=/usr/local/Cellar/boost/1.57.0/lib
+    BOOST_INCLUDE_PATH=/usr/local/Cellar/boost/1.60.0_1/include
+    BOOST_LIB_PATH=/usr/local/Cellar/boost/1.60.0_1/lib
 
     BDB_INCLUDE_PATH=/usr/local/opt/berkeley-db4/include
     BDB_LIB_PATH=/usr/local/Cellar/berkeley-db4/4.8.30/lib

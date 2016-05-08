@@ -989,10 +989,12 @@ int64 GetProofOfStakeReward(int64 nCoinAge, int nHeight)
 		nRewardCoinYear = 5 * MIN_MINT_PROOF_OF_STAKE;
 	else if(nHeight < (2 * YEARLY_BLOCKCOUNT))
 		nRewardCoinYear = 3 * MIN_MINT_PROOF_OF_STAKE;
-	
 	// set return to 10% after PoSV starts
 	if (nHeight > POSV_CUTOFF)
 		nRewardCoinYear = 10 * MIN_MINT_PROOF_OF_STAKE;
+	if (nHeight > INTEREST_DROP)
+                nRewardCoinYear = 5 * MIN_MINT_PROOF_OF_STAKE;
+
 
     int64 nSubsidy = nCoinAge * nRewardCoinYear / 365;
 

@@ -45,6 +45,7 @@ static const int CUTOFF_POW_BLOCK = 50000;
 static const int CUTOFF_POS_BLOCK = 50000;
 static const int X11_CUTOFF_TIME = 1403395200;
 static const int POSV_CUTOFF = 835000;
+static const int INTEREST_DROP = 1670000;
 inline bool MoneyRange(int64 nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
 // Threshold for nLockTime: below this value it is interpreted as block number, otherwise as UNIX timestamp.
 static const unsigned int LOCKTIME_THRESHOLD = 500000000; // Tue Nov  5 00:53:20 1985 UTC

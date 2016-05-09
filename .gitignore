@@ -2,3 +2,5 @@ Makefile
 bluecoin-qt.app
 build/
 qrc_bitcoin.cpp
+Bluecoin-Qt.dmg
+dist/
